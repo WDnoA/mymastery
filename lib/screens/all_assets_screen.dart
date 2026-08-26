@@ -16,7 +16,7 @@ class AllAssetsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final assetsAsync = ref.watch(assetListProvider);
-    final settings = ref.watch(settingsProvider);
+    final settingsAsync = ref.watch(settingsProvider);
 
     return assetsAsync.when(
       data: (assets) {
@@ -28,31 +28,36 @@ class AllAssetsScreen extends ConsumerWidget {
             actionLabel: '加载示例数据',
             onAction: () async {
               final db = ref.read(databaseProvider);
-              await seedSampleData(db);
+              final owner = ref.read(currentOwnerProvider);
+              await seedSampleData(db, owner);
               ref.invalidate(assetListProvider);
             },
           );
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          itemCount: assets.length,
-          itemBuilder: (context, index) {
-            final asset = assets[index];
-            final daysUsed = calculateDaysUsed(asset.purchaseDate);
-            final dailyCost = calculateDailyCost(asset.price, daysUsed);
-            final showDays = settings.durationFormat == '天数';
+        return settingsAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => const SizedBox.shrink(),
+          data: (settings) => ListView.builder(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            itemCount: assets.length,
+            itemBuilder: (context, index) {
+              final asset = assets[index];
+              final daysUsed = calculateDaysUsed(asset.purchaseDate);
+              final dailyCost = calculateDailyCost(asset.price, daysUsed);
+              final showDays = settings.durationFormat == '天数';
 
-            return AssetListItem(
-              asset: asset,
-              daysUsed: daysUsed,
-              dailyCost: dailyCost,
-              useSeparator: settings.useSeparator,
-              showDays: showDays,
-              onTap: () => context.push('/assets/${asset.id}/edit'),
-              onDelete: () => _showDeleteDialog(context, ref, asset),
-            );
-          },
+              return AssetListItem(
+                asset: asset,
+                daysUsed: daysUsed,
+                dailyCost: dailyCost,
+                useSeparator: settings.useSeparator,
+                showDays: showDays,
+                onTap: () => context.push('/assets/${asset.id}/edit'),
+                onDelete: () => _showDeleteDialog(context, ref, asset),
+              );
+            },
+          ),
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../database/database.dart';
 import '../providers/asset_provider.dart';
 import '../utils/calculator.dart';
+import '../widgets/asset_trend_chart.dart';
 import '../widgets/empty_state.dart';
 
 class StatsScreen extends ConsumerWidget {
@@ -42,6 +43,8 @@ class StatsScreen extends ConsumerWidget {
               style: Theme.of(context).textTheme.headlineSmall
                   ?.copyWith(fontWeight: FontWeight.bold),
             ),
+            const SizedBox(height: 16),
+            _buildTrendSection(context, ref),
             const SizedBox(height: 16),
             _buildStatRow(
               context,
@@ -108,6 +111,48 @@ class StatsScreen extends ConsumerWidget {
       },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, _) => Center(child: Text('加载失败: $error')),
+    );
+  }
+
+  Widget _buildTrendSection(BuildContext context, WidgetRef ref) {
+    final trendAsync = ref.watch(assetMonthlyTrendProvider);
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.show_chart,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '价值趋势（累计）',
+                  style: Theme.of(context).textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            trendAsync.when(
+              loading: () => const SizedBox(
+                height: 200,
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (e, _) => SizedBox(
+                height: 200,
+                child: Center(child: Text('趋势加载失败: $e')),
+              ),
+              data: (data) => AssetTrendChart(data: data),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

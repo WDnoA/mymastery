@@ -21,13 +21,13 @@ void main() {
     var assets = await db.getAllAssets();
     expect(assets.length, 0, reason: '初始数据应为空');
 
-    await seedSampleData(db);
+    await seedSampleData(db, 'guest');
     assets = await db.getAllAssets();
     expect(assets.length, 12, reason: '应有 12 条数据');
   });
 
   test('测试 2: 验证资产数据完整性', () async {
-    await seedSampleData(db);
+    await seedSampleData(db, 'guest');
     final assets = await db.getAllAssets();
 
     for (final a in assets) {
@@ -45,7 +45,7 @@ void main() {
   });
 
   test('测试 3: 统计计算正确性', () async {
-    await seedSampleData(db);
+    await seedSampleData(db, 'guest');
     final assets = await db.getAllAssets();
 
     final totalValue = assets.fold<double>(0, (sum, a) => sum + a.price);
@@ -67,14 +67,14 @@ void main() {
   });
 
   test('测试 4: 重复加载不重复写入', () async {
-    await seedSampleData(db);
-    await seedSampleData(db);
+    await seedSampleData(db, 'guest');
+    await seedSampleData(db, 'guest');
     final assets = await db.getAllAssets();
     expect(assets.length, 12, reason: '重复加载不应增加数据');
   });
 
   test('测试 5: CRUD 操作', () async {
-    await seedSampleData(db);
+    await seedSampleData(db, 'guest');
 
     final newId = await db.insertAsset(
       AssetsCompanion(
@@ -107,7 +107,7 @@ void main() {
   });
 
   test('测试 6: 分类功能', () async {
-    await seedSampleData(db);
+    await seedSampleData(db, 'guest');
 
     final categories = await db.getAllCategories();
     final electronicCat =

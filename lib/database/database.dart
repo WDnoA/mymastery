@@ -8,6 +8,8 @@ class Categories extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text()();
   TextColumn get iconEmoji => text().withDefault(const Constant('📦'))();
+  // 数据归属空间：guest=游客，登录后为账号名
+  TextColumn get owner => text().withDefault(const Constant('guest'))();
 }
 
 class Assets extends Table {
@@ -18,6 +20,8 @@ class Assets extends Table {
   TextColumn get status => text()();
   TextColumn get iconEmoji => text().withDefault(const Constant('📱'))();
   IntColumn get categoryId => integer().nullable()();
+  // 数据归属空间：guest=游客，登录后为账号名
+  TextColumn get owner => text().withDefault(const Constant('guest'))();
 }
 
 @DriftDatabase(tables: [Categories, Assets])
@@ -27,10 +31,26 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (m) => m.createAll(),
+    onUpgrade: (m, from, to) async {
+      // 从版本 1 升级：新增 owner 列（默认 guest，保留现有数据）
+      if (from < 2) {
+        await m.addColumn(categories, categories.owner);
+        await m.addColumn(assets, assets.owner);
+      }
+    },
+  );
 
   // ===== Categories =====
-  Future<List<Category>> getAllCategories() => select(categories).get();
+  Future<List<Category>> getCategoriesByOwner(String owner) =>
+      (select(categories)..where((t) => t.owner.equals(owner))).get();
+
+  /// 兼容旧调用：导入/测试使用默认游客空间
+  Future<List<Category>> getAllCategories() => getCategoriesByOwner('guest');
 
   Future<int> insertCategory(CategoriesCompanion entry) =>
       into(categories).insert(entry);
@@ -45,7 +65,11 @@ class AppDatabase extends _$AppDatabase {
       (select(categories)..where((t) => t.id.equals(id))).getSingleOrNull();
 
   // ===== Assets =====
-  Future<List<Asset>> getAllAssets() => select(assets).get();
+  Future<List<Asset>> getAssetsByOwner(String owner) =>
+      (select(assets)..where((t) => t.owner.equals(owner))).get();
+
+  /// 兼容旧调用：导入/测试使用默认游客空间
+  Future<List<Asset>> getAllAssets() => getAssetsByOwner('guest');
 
   Future<Asset?> getAssetById(int id) =>
       (select(assets)..where((t) => t.id.equals(id))).getSingleOrNull();
@@ -59,4 +83,10 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> deleteAsset(int id) =>
       (delete(assets)..where((t) => t.id.equals(id))).go();
+
+  /// 删除某数据归属空间的所有资产和分类（账号删除时清理数据）
+  Future<void> deleteDataByOwner(String owner) async {
+    await (delete(assets)..where((t) => t.owner.equals(owner))).go();
+    await (delete(categories)..where((t) => t.owner.equals(owner))).go();
+  }
 }

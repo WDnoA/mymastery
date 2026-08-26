@@ -109,6 +109,7 @@ class _AddEditAssetScreenState extends ConsumerState<AddEditAssetScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final db = ref.read(databaseProvider);
+    final owner = ref.read(currentOwnerProvider);
     final entry = AssetsCompanion(
       name: Value(_nameController.text.trim()),
       price: Value(double.parse(_priceController.text.trim())),
@@ -116,6 +117,7 @@ class _AddEditAssetScreenState extends ConsumerState<AddEditAssetScreen> {
       status: Value(_status),
       iconEmoji: Value(_selectedEmoji),
       categoryId: Value<int?>(_categoryId),
+      owner: Value(owner),
     );
 
     if (isEditing) {

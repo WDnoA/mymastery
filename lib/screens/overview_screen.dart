@@ -26,7 +26,8 @@ class OverviewScreen extends ConsumerWidget {
             actionLabel: '加载示例数据',
             onAction: () async {
               final db = ref.read(databaseProvider);
-              await seedSampleData(db);
+              final owner = ref.read(currentOwnerProvider);
+              await seedSampleData(db, owner);
               ref.invalidate(assetListProvider);
             },
           );

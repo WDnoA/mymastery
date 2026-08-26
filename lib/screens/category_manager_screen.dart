@@ -7,7 +7,8 @@ import '../providers/asset_provider.dart';
 
 final categoryListProvider = FutureProvider<List<Category>>((ref) async {
   final db = ref.watch(databaseProvider);
-  return db.getAllCategories();
+  final owner = ref.watch(currentOwnerProvider);
+  return db.getCategoriesByOwner(owner);
 });
 
 class CategoryManagerScreen extends ConsumerStatefulWidget {
@@ -117,10 +118,12 @@ class _CategoryManagerScreenState extends ConsumerState<CategoryManagerScreen> {
 
     if (result == true && nameController.text.trim().isNotEmpty) {
       final db = ref.read(databaseProvider);
+      final owner = ref.read(currentOwnerProvider);
       await db.insertCategory(
         CategoriesCompanion(
           name: Value(nameController.text.trim()),
           iconEmoji: Value(selectedEmoji),
+          owner: Value(owner),
         ),
       );
       ref.invalidate(categoryListProvider);

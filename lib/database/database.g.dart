@@ -43,8 +43,18 @@ class $CategoriesTable extends Categories
     requiredDuringInsert: false,
     defaultValue: const Constant('📦'),
   );
+  static const VerificationMeta _ownerMeta = const VerificationMeta('owner');
   @override
-  List<GeneratedColumn> get $columns => [id, name, iconEmoji];
+  late final GeneratedColumn<String> owner = GeneratedColumn<String>(
+    'owner',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('guest'),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, name, iconEmoji, owner];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -74,6 +84,12 @@ class $CategoriesTable extends Categories
         iconEmoji.isAcceptableOrUnknown(data['icon_emoji']!, _iconEmojiMeta),
       );
     }
+    if (data.containsKey('owner')) {
+      context.handle(
+        _ownerMeta,
+        owner.isAcceptableOrUnknown(data['owner']!, _ownerMeta),
+      );
+    }
     return context;
   }
 
@@ -95,6 +111,10 @@ class $CategoriesTable extends Categories
         DriftSqlType.string,
         data['${effectivePrefix}icon_emoji'],
       )!,
+      owner: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}owner'],
+      )!,
     );
   }
 
@@ -108,10 +128,12 @@ class Category extends DataClass implements Insertable<Category> {
   final int id;
   final String name;
   final String iconEmoji;
+  final String owner;
   const Category({
     required this.id,
     required this.name,
     required this.iconEmoji,
+    required this.owner,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -119,6 +141,7 @@ class Category extends DataClass implements Insertable<Category> {
     map['id'] = Variable<int>(id);
     map['name'] = Variable<String>(name);
     map['icon_emoji'] = Variable<String>(iconEmoji);
+    map['owner'] = Variable<String>(owner);
     return map;
   }
 
@@ -127,6 +150,7 @@ class Category extends DataClass implements Insertable<Category> {
       id: Value(id),
       name: Value(name),
       iconEmoji: Value(iconEmoji),
+      owner: Value(owner),
     );
   }
 
@@ -139,6 +163,7 @@ class Category extends DataClass implements Insertable<Category> {
       id: serializer.fromJson<int>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       iconEmoji: serializer.fromJson<String>(json['iconEmoji']),
+      owner: serializer.fromJson<String>(json['owner']),
     );
   }
   @override
@@ -148,19 +173,27 @@ class Category extends DataClass implements Insertable<Category> {
       'id': serializer.toJson<int>(id),
       'name': serializer.toJson<String>(name),
       'iconEmoji': serializer.toJson<String>(iconEmoji),
+      'owner': serializer.toJson<String>(owner),
     };
   }
 
-  Category copyWith({int? id, String? name, String? iconEmoji}) => Category(
+  Category copyWith({
+    int? id,
+    String? name,
+    String? iconEmoji,
+    String? owner,
+  }) => Category(
     id: id ?? this.id,
     name: name ?? this.name,
     iconEmoji: iconEmoji ?? this.iconEmoji,
+    owner: owner ?? this.owner,
   );
   Category copyWithCompanion(CategoriesCompanion data) {
     return Category(
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       iconEmoji: data.iconEmoji.present ? data.iconEmoji.value : this.iconEmoji,
+      owner: data.owner.present ? data.owner.value : this.owner,
     );
   }
 
@@ -169,45 +202,52 @@ class Category extends DataClass implements Insertable<Category> {
     return (StringBuffer('Category(')
           ..write('id: $id, ')
           ..write('name: $name, ')
-          ..write('iconEmoji: $iconEmoji')
+          ..write('iconEmoji: $iconEmoji, ')
+          ..write('owner: $owner')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, iconEmoji);
+  int get hashCode => Object.hash(id, name, iconEmoji, owner);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is Category &&
           other.id == this.id &&
           other.name == this.name &&
-          other.iconEmoji == this.iconEmoji);
+          other.iconEmoji == this.iconEmoji &&
+          other.owner == this.owner);
 }
 
 class CategoriesCompanion extends UpdateCompanion<Category> {
   final Value<int> id;
   final Value<String> name;
   final Value<String> iconEmoji;
+  final Value<String> owner;
   const CategoriesCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.iconEmoji = const Value.absent(),
+    this.owner = const Value.absent(),
   });
   CategoriesCompanion.insert({
     this.id = const Value.absent(),
     required String name,
     this.iconEmoji = const Value.absent(),
+    this.owner = const Value.absent(),
   }) : name = Value(name);
   static Insertable<Category> custom({
     Expression<int>? id,
     Expression<String>? name,
     Expression<String>? iconEmoji,
+    Expression<String>? owner,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (iconEmoji != null) 'icon_emoji': iconEmoji,
+      if (owner != null) 'owner': owner,
     });
   }
 
@@ -215,11 +255,13 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     Value<int>? id,
     Value<String>? name,
     Value<String>? iconEmoji,
+    Value<String>? owner,
   }) {
     return CategoriesCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
       iconEmoji: iconEmoji ?? this.iconEmoji,
+      owner: owner ?? this.owner,
     );
   }
 
@@ -235,6 +277,9 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     if (iconEmoji.present) {
       map['icon_emoji'] = Variable<String>(iconEmoji.value);
     }
+    if (owner.present) {
+      map['owner'] = Variable<String>(owner.value);
+    }
     return map;
   }
 
@@ -243,7 +288,8 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     return (StringBuffer('CategoriesCompanion(')
           ..write('id: $id, ')
           ..write('name: $name, ')
-          ..write('iconEmoji: $iconEmoji')
+          ..write('iconEmoji: $iconEmoji, ')
+          ..write('owner: $owner')
           ..write(')'))
         .toString();
   }
@@ -328,6 +374,16 @@ class $AssetsTable extends Assets with TableInfo<$AssetsTable, Asset> {
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _ownerMeta = const VerificationMeta('owner');
+  @override
+  late final GeneratedColumn<String> owner = GeneratedColumn<String>(
+    'owner',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('guest'),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -337,6 +393,7 @@ class $AssetsTable extends Assets with TableInfo<$AssetsTable, Asset> {
     status,
     iconEmoji,
     categoryId,
+    owner,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -400,6 +457,12 @@ class $AssetsTable extends Assets with TableInfo<$AssetsTable, Asset> {
         categoryId.isAcceptableOrUnknown(data['category_id']!, _categoryIdMeta),
       );
     }
+    if (data.containsKey('owner')) {
+      context.handle(
+        _ownerMeta,
+        owner.isAcceptableOrUnknown(data['owner']!, _ownerMeta),
+      );
+    }
     return context;
   }
 
@@ -437,6 +500,10 @@ class $AssetsTable extends Assets with TableInfo<$AssetsTable, Asset> {
         DriftSqlType.int,
         data['${effectivePrefix}category_id'],
       ),
+      owner: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}owner'],
+      )!,
     );
   }
 
@@ -454,6 +521,7 @@ class Asset extends DataClass implements Insertable<Asset> {
   final String status;
   final String iconEmoji;
   final int? categoryId;
+  final String owner;
   const Asset({
     required this.id,
     required this.name,
@@ -462,6 +530,7 @@ class Asset extends DataClass implements Insertable<Asset> {
     required this.status,
     required this.iconEmoji,
     this.categoryId,
+    required this.owner,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -475,6 +544,7 @@ class Asset extends DataClass implements Insertable<Asset> {
     if (!nullToAbsent || categoryId != null) {
       map['category_id'] = Variable<int>(categoryId);
     }
+    map['owner'] = Variable<String>(owner);
     return map;
   }
 
@@ -489,6 +559,7 @@ class Asset extends DataClass implements Insertable<Asset> {
       categoryId: categoryId == null && nullToAbsent
           ? const Value.absent()
           : Value(categoryId),
+      owner: Value(owner),
     );
   }
 
@@ -505,6 +576,7 @@ class Asset extends DataClass implements Insertable<Asset> {
       status: serializer.fromJson<String>(json['status']),
       iconEmoji: serializer.fromJson<String>(json['iconEmoji']),
       categoryId: serializer.fromJson<int?>(json['categoryId']),
+      owner: serializer.fromJson<String>(json['owner']),
     );
   }
   @override
@@ -518,6 +590,7 @@ class Asset extends DataClass implements Insertable<Asset> {
       'status': serializer.toJson<String>(status),
       'iconEmoji': serializer.toJson<String>(iconEmoji),
       'categoryId': serializer.toJson<int?>(categoryId),
+      'owner': serializer.toJson<String>(owner),
     };
   }
 
@@ -529,6 +602,7 @@ class Asset extends DataClass implements Insertable<Asset> {
     String? status,
     String? iconEmoji,
     Value<int?> categoryId = const Value.absent(),
+    String? owner,
   }) => Asset(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -537,6 +611,7 @@ class Asset extends DataClass implements Insertable<Asset> {
     status: status ?? this.status,
     iconEmoji: iconEmoji ?? this.iconEmoji,
     categoryId: categoryId.present ? categoryId.value : this.categoryId,
+    owner: owner ?? this.owner,
   );
   Asset copyWithCompanion(AssetsCompanion data) {
     return Asset(
@@ -551,6 +626,7 @@ class Asset extends DataClass implements Insertable<Asset> {
       categoryId: data.categoryId.present
           ? data.categoryId.value
           : this.categoryId,
+      owner: data.owner.present ? data.owner.value : this.owner,
     );
   }
 
@@ -563,14 +639,23 @@ class Asset extends DataClass implements Insertable<Asset> {
           ..write('purchaseDate: $purchaseDate, ')
           ..write('status: $status, ')
           ..write('iconEmoji: $iconEmoji, ')
-          ..write('categoryId: $categoryId')
+          ..write('categoryId: $categoryId, ')
+          ..write('owner: $owner')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, name, price, purchaseDate, status, iconEmoji, categoryId);
+  int get hashCode => Object.hash(
+    id,
+    name,
+    price,
+    purchaseDate,
+    status,
+    iconEmoji,
+    categoryId,
+    owner,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -581,7 +666,8 @@ class Asset extends DataClass implements Insertable<Asset> {
           other.purchaseDate == this.purchaseDate &&
           other.status == this.status &&
           other.iconEmoji == this.iconEmoji &&
-          other.categoryId == this.categoryId);
+          other.categoryId == this.categoryId &&
+          other.owner == this.owner);
 }
 
 class AssetsCompanion extends UpdateCompanion<Asset> {
@@ -592,6 +678,7 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
   final Value<String> status;
   final Value<String> iconEmoji;
   final Value<int?> categoryId;
+  final Value<String> owner;
   const AssetsCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
@@ -600,6 +687,7 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
     this.status = const Value.absent(),
     this.iconEmoji = const Value.absent(),
     this.categoryId = const Value.absent(),
+    this.owner = const Value.absent(),
   });
   AssetsCompanion.insert({
     this.id = const Value.absent(),
@@ -609,6 +697,7 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
     required String status,
     this.iconEmoji = const Value.absent(),
     this.categoryId = const Value.absent(),
+    this.owner = const Value.absent(),
   }) : name = Value(name),
        price = Value(price),
        purchaseDate = Value(purchaseDate),
@@ -621,6 +710,7 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
     Expression<String>? status,
     Expression<String>? iconEmoji,
     Expression<int>? categoryId,
+    Expression<String>? owner,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -630,6 +720,7 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
       if (status != null) 'status': status,
       if (iconEmoji != null) 'icon_emoji': iconEmoji,
       if (categoryId != null) 'category_id': categoryId,
+      if (owner != null) 'owner': owner,
     });
   }
 
@@ -641,6 +732,7 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
     Value<String>? status,
     Value<String>? iconEmoji,
     Value<int?>? categoryId,
+    Value<String>? owner,
   }) {
     return AssetsCompanion(
       id: id ?? this.id,
@@ -650,6 +742,7 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
       status: status ?? this.status,
       iconEmoji: iconEmoji ?? this.iconEmoji,
       categoryId: categoryId ?? this.categoryId,
+      owner: owner ?? this.owner,
     );
   }
 
@@ -677,6 +770,9 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
     if (categoryId.present) {
       map['category_id'] = Variable<int>(categoryId.value);
     }
+    if (owner.present) {
+      map['owner'] = Variable<String>(owner.value);
+    }
     return map;
   }
 
@@ -689,7 +785,8 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
           ..write('purchaseDate: $purchaseDate, ')
           ..write('status: $status, ')
           ..write('iconEmoji: $iconEmoji, ')
-          ..write('categoryId: $categoryId')
+          ..write('categoryId: $categoryId, ')
+          ..write('owner: $owner')
           ..write(')'))
         .toString();
   }
@@ -711,11 +808,13 @@ typedef $$CategoriesTableCreateCompanionBuilder = CategoriesCompanion Function({
   Value<int> id,
   required String name,
   Value<String> iconEmoji,
+  Value<String> owner,
 });
 typedef $$CategoriesTableUpdateCompanionBuilder = CategoriesCompanion Function({
   Value<int> id,
   Value<String> name,
   Value<String> iconEmoji,
+  Value<String> owner,
 });
 
 class $$CategoriesTableFilterComposer
@@ -739,6 +838,11 @@ class $$CategoriesTableFilterComposer
 
   ColumnFilters<String> get iconEmoji => $composableBuilder(
     column: $table.iconEmoji,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get owner => $composableBuilder(
+    column: $table.owner,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -766,6 +870,11 @@ class $$CategoriesTableOrderingComposer
     column: $table.iconEmoji,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get owner => $composableBuilder(
+    column: $table.owner,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$CategoriesTableAnnotationComposer
@@ -785,6 +894,9 @@ class $$CategoriesTableAnnotationComposer
 
   GeneratedColumn<String> get iconEmoji =>
       $composableBuilder(column: $table.iconEmoji, builder: (column) => column);
+
+  GeneratedColumn<String> get owner =>
+      $composableBuilder(column: $table.owner, builder: (column) => column);
 }
 
 class $$CategoriesTableTableManager
@@ -813,20 +925,29 @@ class $$CategoriesTableTableManager
               $$CategoriesTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$CategoriesTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<int> id = const Value.absent(),
-            Value<String> name = const Value.absent(),
-            Value<String> iconEmoji = const Value.absent(),
-          }) => CategoriesCompanion(id: id, name: name, iconEmoji: iconEmoji),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> iconEmoji = const Value.absent(),
+                Value<String> owner = const Value.absent(),
+              }) => CategoriesCompanion(
+                id: id,
+                name: name,
+                iconEmoji: iconEmoji,
+                owner: owner,
+              ),
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
                 required String name,
                 Value<String> iconEmoji = const Value.absent(),
+                Value<String> owner = const Value.absent(),
               }) => CategoriesCompanion.insert(
                 id: id,
                 name: name,
                 iconEmoji: iconEmoji,
+                owner: owner,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -858,6 +979,7 @@ typedef $$AssetsTableCreateCompanionBuilder = AssetsCompanion Function({
   required String status,
   Value<String> iconEmoji,
   Value<int?> categoryId,
+  Value<String> owner,
 });
 typedef $$AssetsTableUpdateCompanionBuilder = AssetsCompanion Function({
   Value<int> id,
@@ -867,6 +989,7 @@ typedef $$AssetsTableUpdateCompanionBuilder = AssetsCompanion Function({
   Value<String> status,
   Value<String> iconEmoji,
   Value<int?> categoryId,
+  Value<String> owner,
 });
 
 class $$AssetsTableFilterComposer
@@ -910,6 +1033,11 @@ class $$AssetsTableFilterComposer
 
   ColumnFilters<int> get categoryId => $composableBuilder(
     column: $table.categoryId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get owner => $composableBuilder(
+    column: $table.owner,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -957,6 +1085,11 @@ class $$AssetsTableOrderingComposer
     column: $table.categoryId,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get owner => $composableBuilder(
+    column: $table.owner,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$AssetsTableAnnotationComposer
@@ -992,6 +1125,9 @@ class $$AssetsTableAnnotationComposer
     column: $table.categoryId,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get owner =>
+      $composableBuilder(column: $table.owner, builder: (column) => column);
 }
 
 class $$AssetsTableTableManager
@@ -1029,6 +1165,7 @@ class $$AssetsTableTableManager
                 Value<String> status = const Value.absent(),
                 Value<String> iconEmoji = const Value.absent(),
                 Value<int?> categoryId = const Value.absent(),
+                Value<String> owner = const Value.absent(),
               }) => AssetsCompanion(
                 id: id,
                 name: name,
@@ -1037,6 +1174,7 @@ class $$AssetsTableTableManager
                 status: status,
                 iconEmoji: iconEmoji,
                 categoryId: categoryId,
+                owner: owner,
               ),
           createCompanionCallback:
               ({
@@ -1047,6 +1185,7 @@ class $$AssetsTableTableManager
                 required String status,
                 Value<String> iconEmoji = const Value.absent(),
                 Value<int?> categoryId = const Value.absent(),
+                Value<String> owner = const Value.absent(),
               }) => AssetsCompanion.insert(
                 id: id,
                 name: name,
@@ -1055,6 +1194,7 @@ class $$AssetsTableTableManager
                 status: status,
                 iconEmoji: iconEmoji,
                 categoryId: categoryId,
+                owner: owner,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

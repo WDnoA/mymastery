@@ -2,8 +2,8 @@ import 'package:drift/drift.dart' show Value;
 
 import '../database/database.dart';
 
-Future<Map<String, int>> _seedCategories(AppDatabase db) async {
-  final existingCategories = await db.getAllCategories();
+Future<Map<String, int>> _seedCategories(AppDatabase db, String owner) async {
+  final existingCategories = await db.getCategoriesByOwner(owner);
   if (existingCategories.isNotEmpty) {
     final map = <String, int>{};
     for (final c in existingCategories) {
@@ -25,18 +25,22 @@ Future<Map<String, int>> _seedCategories(AppDatabase db) async {
   final map = <String, int>{};
   for (final (name, emoji) in defaults) {
     final id = await db.insertCategory(
-      CategoriesCompanion(name: Value(name), iconEmoji: Value(emoji)),
+      CategoriesCompanion(
+        name: Value(name),
+        iconEmoji: Value(emoji),
+        owner: Value(owner),
+      ),
     );
     map[name] = id;
   }
   return map;
 }
 
-Future<void> seedSampleData(AppDatabase db) async {
-  final existing = await db.getAllAssets();
+Future<void> seedSampleData(AppDatabase db, String owner) async {
+  final existing = await db.getAssetsByOwner(owner);
   if (existing.isNotEmpty) return;
 
-  final catIds = await _seedCategories(db);
+  final catIds = await _seedCategories(db, owner);
 
   final samples = [
     (
@@ -146,6 +150,7 @@ Future<void> seedSampleData(AppDatabase db) async {
         status: Value(s.status),
         iconEmoji: Value(s.iconEmoji),
         categoryId: Value(catIds[s.categoryName]),
+        owner: Value(owner),
       ),
     );
   }

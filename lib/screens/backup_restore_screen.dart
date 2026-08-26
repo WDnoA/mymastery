@@ -1,9 +1,13 @@
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:csv/csv.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../database/database.dart';
 import '../providers/asset_provider.dart';
@@ -12,7 +16,8 @@ class BackupRestoreScreen extends ConsumerStatefulWidget {
   const BackupRestoreScreen({super.key});
 
   @override
-  ConsumerState<BackupRestoreScreen> createState() => _BackupRestoreScreenState();
+  ConsumerState<BackupRestoreScreen> createState() =>
+      _BackupRestoreScreenState();
 }
 
 class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
@@ -21,25 +26,29 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
 
   Future<void> _exportData() async {
     final db = ref.read(databaseProvider);
-    final assets = await db.getAllAssets();
+    final owner = ref.read(currentOwnerProvider);
+    final assets = await db.getAssetsByOwner(owner);
 
     if (assets.isEmpty) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('暂无数据可导出')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('暂无数据可导出')));
       }
       return;
     }
 
-    final jsonList = assets.map((a) => {
-          'name': a.name,
-          'price': a.price,
-          'purchaseDate': a.purchaseDate,
-          'status': a.status,
-          'iconEmoji': a.iconEmoji,
-          'categoryId': a.categoryId,
-        }).toList();
+    final jsonList = assets
+        .map(
+          (a) => {
+            'name': a.name,
+            'price': a.price,
+            'purchaseDate': a.purchaseDate,
+            'status': a.status,
+            'iconEmoji': a.iconEmoji,
+            'categoryId': a.categoryId,
+          },
+        )
+        .toList();
 
     final jsonStr = const JsonEncoder.withIndent('  ').convert(jsonList);
 
@@ -54,6 +63,45 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
           ),
         ),
       );
+    }
+  }
+
+  Future<void> _exportCsv() async {
+    final db = ref.read(databaseProvider);
+    final owner = ref.read(currentOwnerProvider);
+    final assets = await db.getAssetsByOwner(owner);
+
+    if (assets.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('暂无数据可导出')));
+      }
+      return;
+    }
+
+    // 组装 CSV 数据（表头 + 行）
+    final rows = <List<dynamic>>[
+      ['名称', '价格', '购买日期', '状态', '图标'],
+      for (final a in assets)
+        [a.name, a.price, a.purchaseDate, a.status, a.iconEmoji],
+    ];
+    final csv = const ListToCsvConverter().convert(rows);
+
+    try {
+      final dir = await getTemporaryDirectory();
+      final file = File(
+        '${dir.path}/资产报表_${DateTime.now().millisecondsSinceEpoch}.csv',
+      );
+      await file.writeAsString(csv, encoding: utf8);
+
+      await Share.shareXFiles([
+        XFile(file.path, mimeType: 'text/csv'),
+      ], text: '我的精通 - 资产报表');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('导出 CSV 失败: $e')));
+      }
     }
   }
 
@@ -84,9 +132,8 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
   Future<void> _importData() async {
     final text = _importController.text.trim();
     if (text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请粘贴 JSON 数据')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('请粘贴 JSON 数据')));
       return;
     }
 
@@ -97,20 +144,26 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
       final db = ref.read(databaseProvider);
 
       int count = 0;
+      final owner = ref.read(currentOwnerProvider);
       for (final item in jsonList) {
         if (item is Map<String, dynamic> &&
             item.containsKey('name') &&
             item.containsKey('price')) {
-          await db.insertAsset(AssetsCompanion(
-            name: Value(item['name'].toString()),
-            price: Value((item['price'] as num).toDouble()),
-            purchaseDate: Value(item['purchaseDate']?.toString() ?? '2024-01-01'),
-            status: Value(item['status']?.toString() ?? '服役中'),
-            iconEmoji: Value(item['iconEmoji']?.toString() ?? '📱'),
-            categoryId: item['categoryId'] != null
-                ? Value<int?>(item['categoryId'] as int?)
-                : const Value.absent(),
-          ));
+          await db.insertAsset(
+            AssetsCompanion(
+              name: Value(item['name'].toString()),
+              price: Value((item['price'] as num).toDouble()),
+              purchaseDate: Value(
+                item['purchaseDate']?.toString() ?? '2024-01-01',
+              ),
+              status: Value(item['status']?.toString() ?? '服役中'),
+              iconEmoji: Value(item['iconEmoji']?.toString() ?? '📱'),
+              categoryId: item['categoryId'] != null
+                  ? Value<int?>(item['categoryId'] as int?)
+                  : const Value.absent(),
+              owner: Value(owner),
+            ),
+          );
           count++;
         }
       }
@@ -118,16 +171,14 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
       ref.invalidate(assetListProvider);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('成功导入 $count 条资产数据')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('成功导入 $count 条资产数据')));
         _importController.clear();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('导入失败: $e')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('导入失败: $e')));
       }
     } finally {
       setState(() => _importing = false);
@@ -165,6 +216,14 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
                   onPressed: _exportData,
                   icon: const Icon(Icons.copy),
                   label: const Text('导出到剪贴板'),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: FilledButton.tonalIcon(
+                  onPressed: _exportCsv,
+                  icon: const Icon(Icons.table_chart_outlined),
+                  label: const Text('导出 CSV 报表'),
                 ),
               ),
             ],
@@ -244,13 +303,16 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: Row(
               children: [
-                Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+                Icon(
+                  icon,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                  style: Theme.of(context).textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w600),
                 ),
               ],
             ),
