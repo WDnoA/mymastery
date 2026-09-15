@@ -109,6 +109,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 title: const Text('版本信息'),
                 subtitle: Text(_version.isEmpty ? '加载中...' : _version),
               ),
+              ListTile(
+                leading: const Icon(Icons.privacy_tip_outlined, color: Colors.purple),
+                title: const Text('隐私政策'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/settings/privacy-policy'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.description_outlined, color: Colors.teal),
+                title: const Text('用户协议'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/settings/user-agreement'),
+              ),
             ],
           ),
         ],

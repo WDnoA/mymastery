@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../database/database.dart';
 import '../providers/asset_provider.dart';
+import '../providers/settings_provider.dart';
 import '../utils/calculator.dart';
 import '../widgets/asset_trend_chart.dart';
 import '../widgets/empty_state.dart';
@@ -13,6 +14,7 @@ class StatsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final assetsAsync = ref.watch(assetListProvider);
+    final settingsAsync = ref.watch(settingsProvider);
 
     return assetsAsync.when(
       data: (assets) {
@@ -35,6 +37,8 @@ class StatsScreen extends ConsumerWidget {
             }) /
             assets.length;
 
+        final useSeparator = settingsAsync.value?.useSeparator ?? false;
+
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
@@ -49,14 +53,14 @@ class StatsScreen extends ConsumerWidget {
             _buildStatRow(
               context,
               '总资产价值',
-              formatPrice(totalValue),
+              formatCurrency(totalValue, useSeparator: useSeparator),
               Icons.account_balance_wallet,
               Colors.blue,
             ),
             _buildStatRow(
               context,
               '日均使用成本',
-              formatPrice(avgDailyCost),
+              formatCurrency(avgDailyCost, useSeparator: useSeparator),
               Icons.trending_down,
               Colors.orange,
             ),
@@ -105,7 +109,7 @@ class StatsScreen extends ConsumerWidget {
             ...assets
                 .sortedBy((a) => -a.price)
                 .take(10)
-                .map((a) => _buildRankItem(context, a)),
+                .map((a) => _buildRankItem(context, a, useSeparator)),
           ],
         );
       },
@@ -222,7 +226,7 @@ class StatsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildRankItem(BuildContext context, Asset asset) {
+  Widget _buildRankItem(BuildContext context, Asset asset, bool useSeparator) {
     final days = calculateDaysUsed(asset.purchaseDate);
     final cost = calculateDailyCost(asset.price, days);
     return Card(
@@ -239,11 +243,11 @@ class StatsScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              formatPrice(asset.price),
+              formatCurrency(asset.price, useSeparator: useSeparator),
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             Text(
-              '${formatPrice(cost)}/天',
+              '${formatCurrency(cost, useSeparator: useSeparator)}/天',
               style: TextStyle(fontSize: 11, color: Colors.grey[500]),
             ),
           ],

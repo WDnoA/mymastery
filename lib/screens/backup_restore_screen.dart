@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:csv/csv.dart';
 import 'package:drift/drift.dart' show Value;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -67,6 +68,15 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
   }
 
   Future<void> _exportCsv() async {
+    if (kIsWeb) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('CSV 导出暂不支持 Web 端，请使用 Android 端')),
+        );
+      }
+      return;
+    }
+
     final db = ref.read(databaseProvider);
     final owner = ref.read(currentOwnerProvider);
     final assets = await db.getAssetsByOwner(owner);
@@ -96,7 +106,7 @@ class _BackupRestoreScreenState extends ConsumerState<BackupRestoreScreen> {
 
       await Share.shareXFiles([
         XFile(file.path, mimeType: 'text/csv'),
-      ], text: '我的精通 - 资产报表');
+      ], text: '资产管理 - 资产报表');
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)

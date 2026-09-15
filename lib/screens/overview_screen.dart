@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../providers/asset_provider.dart';
+import '../providers/settings_provider.dart';
 import '../utils/calculator.dart';
 import '../utils/seed_data.dart';
 import '../widgets/stat_card.dart';
@@ -15,6 +16,8 @@ class OverviewScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final assetsAsync = ref.watch(assetListProvider);
+    final settingsAsync = ref.watch(settingsProvider);
+    final useSeparator = settingsAsync.value?.useSeparator ?? false;
 
     return assetsAsync.when(
       data: (assets) {
@@ -54,7 +57,10 @@ class OverviewScreen extends ConsumerWidget {
                 Expanded(
                   child: StatCard(
                     title: '总资产价值',
-                    value: formatPrice(totalValue),
+                    value: formatCurrency(
+                      totalValue,
+                      useSeparator: useSeparator,
+                    ),
                     icon: Icons.account_balance_wallet,
                     color: Colors.blue,
                   ),
@@ -63,7 +69,10 @@ class OverviewScreen extends ConsumerWidget {
                 Expanded(
                   child: StatCard(
                     title: '日均使用成本',
-                    value: formatPrice(avgDailyCost),
+                    value: formatCurrency(
+                      avgDailyCost,
+                      useSeparator: useSeparator,
+                    ),
                     icon: Icons.trending_down,
                     color: Colors.orange,
                   ),
@@ -95,9 +104,7 @@ class OverviewScreen extends ConsumerWidget {
             const SizedBox(height: 24),
             Text(
               '最近添加',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
+              style: Theme.of(context).textTheme.titleMedium
                   ?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),

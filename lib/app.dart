@@ -28,7 +28,7 @@ class _MyAppState extends ConsumerState<MyApp> {
         settingsAsync.value?.materialThemeMode ?? ThemeMode.system;
 
     return MaterialApp.router(
-      title: '我的精通',
+      title: '资产管理',
       debugShowCheckedModeBanner: false,
       themeMode: themeMode,
       theme: ThemeData(

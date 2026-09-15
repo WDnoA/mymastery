@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 import '../database/database.dart';
 import '../providers/asset_provider.dart';
+import 'category_manager_screen.dart';
 
 class AddEditAssetScreen extends ConsumerStatefulWidget {
   final int? assetId;
@@ -55,16 +56,6 @@ class _AddEditAssetScreenState extends ConsumerState<AddEditAssetScreen> {
   ];
 
   static const _statuses = ['服役中', '已退役', '已卖出'];
-
-  static const _categories = [
-    {'name': '电子产品', 'emoji': '📱'},
-    {'name': '家居家具', 'emoji': '🛋'},
-    {'name': '交通工具', 'emoji': '🚗'},
-    {'name': '乐器设备', 'emoji': '🎸'},
-    {'name': '运动户外', 'emoji': '👟'},
-    {'name': '书籍文具', 'emoji': '📚'},
-    {'name': '其他', 'emoji': '📦'},
-  ];
 
   @override
   void initState() {
@@ -254,24 +245,36 @@ class _AddEditAssetScreenState extends ConsumerState<AddEditAssetScreen> {
               },
             ),
             const SizedBox(height: 16),
-            DropdownButtonFormField<int?>(
-              initialValue: _categoryId,
-              decoration: const InputDecoration(
-                labelText: '资产分类',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.category_outlined),
-              ),
-              items: [
-                const DropdownMenuItem<int?>(value: null, child: Text('未分类')),
-                for (int i = 0; i < _categories.length; i++)
-                  DropdownMenuItem<int?>(
-                    value: i,
-                    child: Text(
-                      '${_categories[i]['emoji']} ${_categories[i]['name']}',
-                    ),
-                  ),
-              ],
-              onChanged: (v) => setState(() => _categoryId = v),
+            Consumer(
+              builder: (context, ref, child) {
+                final categoriesAsync = ref.watch(categoryListProvider);
+                return categoriesAsync.when(
+                  data: (categories) {
+                    return DropdownButtonFormField<int?>(
+                      initialValue: _categoryId,
+                      decoration: const InputDecoration(
+                        labelText: '资产分类',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.category_outlined),
+                      ),
+                      items: [
+                        const DropdownMenuItem<int?>(
+                          value: null,
+                          child: Text('未分类'),
+                        ),
+                        for (final cat in categories)
+                          DropdownMenuItem<int?>(
+                            value: cat.id,
+                            child: Text('${cat.iconEmoji} ${cat.name}'),
+                          ),
+                      ],
+                      onChanged: (v) => setState(() => _categoryId = v),
+                    );
+                  },
+                  loading: () => const CircularProgressIndicator(),
+                  error: (e, _) => Text('加载分类失败: $e'),
+                );
+              },
             ),
             const SizedBox(height: 32),
             FilledButton(

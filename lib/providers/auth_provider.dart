@@ -2,7 +2,8 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+import '../utils/secure_storage_stub.dart';
 
 /// 认证状态模型
 class AuthState {
@@ -57,7 +58,20 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   static const _keyCurrentUser = 'current_user';
   static const _keyLockOnStartup = 'lock_on_startup';
 
-  final _storage = const FlutterSecureStorage();
+  final _storage = SecureStorage();
+
+  // 平台兼容的存储方法
+  Future<String?> _read(String key) async {
+    return await _storage.read(key: key);
+  }
+
+  Future<void> _write(String key, String value) async {
+    await _storage.write(key: key, value: value);
+  }
+
+  Future<void> _delete(String key) async {
+    await _storage.delete(key: key);
+  }
 
   @override
   Future<AuthState> build() async {
@@ -65,8 +79,8 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   }
 
   Future<AuthState> _loadState() async {
-    final currentUser = await _storage.read(key: _keyCurrentUser);
-    final lockRaw = await _storage.read(key: _keyLockOnStartup);
+    final currentUser = await _read(_keyCurrentUser);
+    final lockRaw = await _read(_keyLockOnStartup);
     final lockOnStartup = lockRaw == 'true';
     final accounts = await _loadAccounts();
 
@@ -82,7 +96,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   }
 
   Future<Map<String, String>> _loadAccounts() async {
-    final raw = await _storage.read(key: _keyAccounts);
+    final raw = await _read(_keyAccounts);
     if (raw == null || raw.isEmpty) return {};
     try {
       final decoded = jsonDecode(raw);
@@ -94,7 +108,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   }
 
   Future<void> _saveAccounts(Map<String, String> accounts) async {
-    await _storage.write(key: _keyAccounts, value: jsonEncode(accounts));
+    await _write(_keyAccounts, jsonEncode(accounts));
   }
 
   String _hashPassword(String password) {
@@ -114,7 +128,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     accounts[name] = _hashPassword(password);
     await _saveAccounts(accounts);
 
-    await _storage.write(key: _keyCurrentUser, value: name);
+    await _write(_keyCurrentUser, name);
     state = AsyncData(
       state.value!.copyWith(
         currentUser: () => name,
@@ -134,7 +148,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
     if (hash != _hashPassword(password)) return '密码错误';
 
-    await _storage.write(key: _keyCurrentUser, value: name);
+    await _write(_keyCurrentUser, name);
     state = AsyncData(
       state.value!.copyWith(currentUser: () => name, sessionLocked: false),
     );
@@ -143,7 +157,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
   /// 退出登录，回到游客空间
   Future<void> logout() async {
-    await _storage.delete(key: _keyCurrentUser);
+    await _delete(_keyCurrentUser);
     state = AsyncData(
       state.value!.copyWith(currentUser: () => null, sessionLocked: false),
     );
@@ -151,7 +165,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
   /// 开启/关闭「启动需解锁」
   Future<void> setLockOnStartup(bool enabled) async {
-    await _storage.write(key: _keyLockOnStartup, value: enabled.toString());
+    await _write(_keyLockOnStartup, enabled.toString());
     state = AsyncData(state.value!.copyWith(lockOnStartup: enabled));
   }
 
@@ -195,7 +209,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     if (hash == null) return '该账号不存在';
     if (hash != _hashPassword(password)) return '密码错误';
 
-    await _storage.write(key: _keyCurrentUser, value: name);
+    await _write(_keyCurrentUser, name);
     state = AsyncData(
       state.value!.copyWith(currentUser: () => name, sessionLocked: false),
     );

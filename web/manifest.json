@@ -1,11 +1,11 @@
 {
-    "name": "mymastery",
-    "short_name": "mymastery",
+    "name": "资产管理",
+    "short_name": "资产",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#4CAF50",
+    "theme_color": "#4CAF50",
+    "description": "个人资产管理应用，记录和管理购买的电子产品、家具、车辆等资产，计算日均使用成本。",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

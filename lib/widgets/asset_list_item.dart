@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import '../database/database.dart';
+import '../utils/calculator.dart';
 
 class AssetListItem extends StatelessWidget {
   final Asset asset;
@@ -36,16 +36,11 @@ class AssetListItem extends StatelessWidget {
     }
   }
 
-  String _formatPrice(double v) {
-    if (useSeparator) {
-      return '¥${NumberFormat('#,##0.00').format(v)}';
-    }
-    return '¥${v.toStringAsFixed(2)}';
-  }
-
   @override
   Widget build(BuildContext context) {
     final timeDisplay = showDays ? '$daysUsed天' : asset.purchaseDate;
+    final priceStr = formatCurrency(asset.price, useSeparator: useSeparator);
+    final dailyCostStr = formatCurrency(dailyCost, useSeparator: useSeparator);
 
     return Dismissible(
       key: Key('asset_${asset.id}'),
@@ -78,7 +73,7 @@ class AssetListItem extends StatelessWidget {
           style: const TextStyle(fontWeight: FontWeight.w500),
         ),
         subtitle: Text(
-          '${_formatPrice(asset.price)} · ${asset.status} · $timeDisplay · ${_formatPrice(dailyCost)}/天',
+          '$priceStr · ${asset.status} · $timeDisplay · $dailyCostStr/天',
           style: TextStyle(fontSize: 12, color: Colors.grey[600]),
         ),
         trailing: Container(

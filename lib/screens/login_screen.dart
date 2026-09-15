@@ -94,7 +94,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       if (err != null) {
         setState(() => _error = err);
       } else {
-        // 登录/注册成功：返回首页。默认无需解锁时可直接进入主界面
+        // 登录/注册成功：等待状态更新后再跳转
+        await Future.delayed(const Duration(milliseconds: 100));
         if (mounted) context.go('/');
       }
     } catch (e) {
@@ -142,7 +143,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        _isRegister ? '注册后数据将独立保存' : '我的精通 · 个人资产管理',
+                        _isRegister ? '创建账号' : '资产管理 · 个人资产管家',
                         style: Theme.of(context).textTheme.bodyMedium
                             ?.copyWith(color: Colors.grey),
                       ),

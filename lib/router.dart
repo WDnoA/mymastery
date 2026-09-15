@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -43,7 +44,12 @@ GoRouter createRouter(WidgetRef ref) {
       // 未初始化完成，尚未锁定：放行，避免闪烁
       if (auth == null) return null;
 
-      // 仅当「启动需解锁」且当前会话未解锁时，强制进入登录页
+      // Web 端：未登录时强制进入登录页
+      if (kIsWeb && auth.isGuest && !isLoginPage) {
+        return '/login';
+      }
+
+      // 原生端：仅当「启动需解锁」且当前会话未解锁时，强制进入登录页
       final needsUnlock = auth.lockOnStartup && auth.sessionLocked;
       if (needsUnlock && !isLoginPage) {
         return '/login';
@@ -80,7 +86,12 @@ GoRouter createRouter(WidgetRef ref) {
       GoRoute(
         path: '/assets/:id/edit',
         builder: (context, state) {
-          final id = int.parse(state.pathParameters['id']!);
+          final id = int.tryParse(state.pathParameters['id'] ?? '');
+          if (id == null) {
+            return const Scaffold(
+              body: Center(child: Text('无效的资产 ID')),
+            );
+          }
           return AddEditAssetScreen(assetId: id);
         },
       ),
